@@ -1,6 +1,6 @@
 fips_begin_app(app windowed)
     fips_files(main.c)
     sokol_shader(../res/test-shader.glsl ${slang})
-    fips_deps(sokol cdbgui stb)
+    fips_deps(cdbgui par sokol stb)
 fips_end_app()
 target_compile_definitions(app PRIVATE USE_DBG_UI)

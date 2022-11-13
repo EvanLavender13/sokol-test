@@ -8,9 +8,12 @@ imports:
   sokol-tools-bin:
     git: https://github.com/floooh/sokol-tools-bin
   fips-cimgui:
-    git: https://github.com/fips-libs/fips-cimgui.git
+    git: https://github.com/fips-libs/fips-cimgui
   stb:
-    git: https://github.com/nothings/stb.git
+    git: https://github.com/nothings/stb
+  par:
+    git: https://github.com/prideout/par
+    
 #   imports:
 #       PROJ-NAME:
 #           git: GIT-URL
