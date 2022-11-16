@@ -7,7 +7,7 @@
 #include "sokol_glue.h"
 #include "sokol_time.h"
 
-#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
-#include "cimgui/cimgui.h"
-#include "sokol_imgui.h"
-#include "sokol_gfx_imgui.h"
+// #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+// #include "cimgui/cimgui.h"
+// #include "sokol_imgui.h"
+// #include "sokol_gfx_imgui.h"
