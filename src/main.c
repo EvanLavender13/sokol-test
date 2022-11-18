@@ -19,7 +19,7 @@ void frame()
 
 void cleanup() 
 {
-    app_cleanup();
+    app_cleanup(&app);
 }
 
 void event(const sapp_event *e) 

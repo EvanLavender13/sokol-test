@@ -66,7 +66,7 @@ void camera_debug_gui(parcc_context *camera)
     igBegin("Camera Controls", NULL, 0);
 
     igText("Camera Properties");
-    char *fov_elems[2] = { "PARCC_VERTICAL", "PARCC_HORIZONTAL" };
+    char *fov_elems[2] = { "vertical", "horizontal" };
     igSliderInt("fov_orientation", (int*) &camera_props.fov_orientation, 0, 1, fov_elems[camera_props.fov_orientation], ImGuiSliderFlags_None);
     float fov_radians = HMM_ToRadians(camera_props.fov_degrees);
     igSliderAngle("fov_degrees", &fov_radians, 0.0f, 360.0f, "%.1f", ImGuiScrollFlags_None);

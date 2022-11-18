@@ -17,6 +17,7 @@
 #include "../res/test-shader.glsl.h"
 
 #include "camera.h"
+#include "components.h"
 #include "input.h"
 
 #define NUM_CUBES 10
@@ -25,15 +26,17 @@ typedef struct
 {
     sg_pass_action pass_action;
     sg_pipeline pipeline;
-    sg_bindings bindings;
-
-    hmm_vec3 cube_positions[NUM_CUBES];    
+    sg_bindings bindings;  
 } GraphicsState;
 
 typedef struct
 {
     GraphicsState graphics;
     parcc_context *camera;
+
+    ecs_world_t *world;
+    ecs_entity_t render_system;
+    hmm_vec3 cube_positions[NUM_CUBES];
 
     uint64_t last_time;
     uint64_t delta_time;      
@@ -43,6 +46,26 @@ typedef struct {
     float x, y, z;
     float r, g, b, a;
 } Vertex;
+
+void Move(ecs_iter_t *iter)
+{
+    printf("MOVE\n");
+}
+
+void Render(ecs_iter_t *iter)
+{
+    Position *position = ecs_term(iter, Position, 1);
+    hmm_mat4 *view_projection = iter->param;
+    hmm_mat4 model = HMM_Translate(position->current);
+    vs_params_t vs_params = 
+    {
+        .mvp = HMM_MultiplyMat4(*view_projection, model),
+    };
+
+    sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
+    sg_draw(0, 36, 1);    
+    printf("RENDER\n");
+}
 
 void app_init(App *app)
 {
@@ -73,16 +96,35 @@ void app_init(App *app)
 
     app->camera = parcc_create_context(&camera_props);
 
-    app->graphics.cube_positions[0] = HMM_Vec3( 0.0f,  0.0f,  0.0f);
-    app->graphics.cube_positions[1] = HMM_Vec3( 2.0f,  5.0f, -15.0f);
-    app->graphics.cube_positions[2] = HMM_Vec3(-1.5f, -2.2f, -2.5f);
-    app->graphics.cube_positions[3] = HMM_Vec3(-3.8f, -2.0f, -12.3f);
-    app->graphics.cube_positions[4] = HMM_Vec3( 2.4f, -0.4f, -3.5f);
-    app->graphics.cube_positions[5] = HMM_Vec3(-1.7f,  3.0f, -7.5f);
-    app->graphics.cube_positions[6] = HMM_Vec3( 1.3f, -2.0f, -2.5f);
-    app->graphics.cube_positions[7] = HMM_Vec3( 1.5f,  2.0f, -2.5f);
-    app->graphics.cube_positions[8] = HMM_Vec3( 1.5f,  0.2f, -1.5f);
-    app->graphics.cube_positions[9] = HMM_Vec3(-1.3f,  1.0f, -1.5f);
+    ecs_world_t *world = ecs_init();
+    ECS_COMPONENT(world, Position);
+    ECS_SYSTEM(world, Move, EcsOnUpdate, Position);
+    // system cannot be run manually if ECS_SYSTEM macro is used outside scope
+    ecs_entity_t render_system = ecs_system_init(world, &(ecs_system_desc_t)
+    {
+        .query.filter.terms =
+        {
+            { ecs_id(Position) }
+        },
+        .callback = Render
+    });
+
+    ecs_entity_t e = ecs_new_id(world);
+    ecs_set(world, e, Position, { 0.0f, 0.0f, 0.0f });
+
+    app->world = world;
+    app->render_system = render_system;
+
+    app->cube_positions[0] = HMM_Vec3( 0.0f,  0.0f,  0.0f);
+    app->cube_positions[1] = HMM_Vec3( 2.0f,  5.0f, -15.0f);
+    app->cube_positions[2] = HMM_Vec3(-1.5f, -2.2f, -2.5f);
+    app->cube_positions[3] = HMM_Vec3(-3.8f, -2.0f, -12.3f);
+    app->cube_positions[4] = HMM_Vec3( 2.4f, -0.4f, -3.5f);
+    app->cube_positions[5] = HMM_Vec3(-1.7f,  3.0f, -7.5f);
+    app->cube_positions[6] = HMM_Vec3( 1.3f, -2.0f, -2.5f);
+    app->cube_positions[7] = HMM_Vec3( 1.5f,  2.0f, -2.5f);
+    app->cube_positions[8] = HMM_Vec3( 1.5f,  0.2f, -1.5f);
+    app->cube_positions[9] = HMM_Vec3(-1.3f,  1.0f, -1.5f);
 
     Vertex vertices[] =
     {
@@ -171,17 +213,13 @@ void app_init(App *app)
 
 void app_draw(App *app)
 {    
-    app->delta_time = stm_laptime(&app->last_time);
+    float delta_time = sapp_frame_duration();
+    app->delta_time = delta_time;
+
+    ecs_progress(app->world, delta_time);
 
     const int width = sapp_width();
     const int height = sapp_height();
-    simgui_new_frame(&(simgui_frame_desc_t)
-    {
-        .width = width,
-        .height = height,
-        .delta_time = sapp_frame_duration(),
-        .dpi_scale = sapp_dpi_scale()
-    });
 
     hmm_mat4 view;
     hmm_mat4 projection;
@@ -191,20 +229,30 @@ void app_draw(App *app)
     sg_begin_default_pass(&app->graphics.pass_action, width, height);
     sg_apply_pipeline(app->graphics.pipeline);
     sg_apply_bindings(&app->graphics.bindings);
+    
+    ecs_run(app->world, app->render_system, delta_time, &view_projection);
 
-    for (int i = 0; i < NUM_CUBES; i++)
+    // for (int i = 0; i < NUM_CUBES; i++)
+    // {
+    //     hmm_mat4 model = HMM_Translate(app->cube_positions[i]);
+    //     float angle = 20.0f * i;
+    //     model = HMM_MultiplyMat4(model, HMM_Rotate(angle, HMM_Vec3(1.0f, 0.3f, 0.5f)));
+    //     vs_params_t vs_params = 
+    //     {
+    //         .mvp = HMM_MultiplyMat4(view_projection, model),
+    //     };
+
+    //     sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
+    //     sg_draw(0, 36, 1);
+    // }
+
+    simgui_new_frame(&(simgui_frame_desc_t)
     {
-        hmm_mat4 model = HMM_Translate(app->graphics.cube_positions[i]);
-        float angle = 20.0f * i;
-        model = HMM_MultiplyMat4(model, HMM_Rotate(angle, HMM_Vec3(1.0f, 0.3f, 0.5f)));
-        vs_params_t vs_params = 
-        {
-            .mvp = HMM_MultiplyMat4(view_projection, model),
-        };
-
-        sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
-        sg_draw(0, 36, 1);
-    }
+        .width = width,
+        .height = height,
+        .delta_time = sapp_frame_duration(),
+        .dpi_scale = sapp_dpi_scale()
+    });
 
     camera_debug_gui(app->camera);
 
@@ -225,9 +273,10 @@ void app_event(App *app, const sapp_event *event)
     __cdbgui_event(event);
 }
 
-void app_cleanup()
+void app_cleanup(App *app)
 {
     // simgui_shutdown();
+    ecs_fini(app->world);
     __cdbgui_shutdown();
     sg_shutdown();
 }
