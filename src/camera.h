@@ -6,11 +6,22 @@
 #include "cimgui/cimgui.h"
 #include "sokol_imgui.h"
 
+hmm_mat4 camera_view_projection(parcc_context *camera)
+{
+    hmm_mat4 view;
+    hmm_mat4 projection;
+    parcc_get_matrices(camera, (float*) &projection, (float*) &view);
+    return HMM_MultiplyMat4(projection, view);
+}
+
 void camera_input(parcc_context *camera, const sapp_event *event)
 {
     static float mouse_down_pos[2] = { 0 };
     int win_x = event->mouse_x;
     int win_y = sapp_height() - 1 - event->mouse_y;
+
+    printf("win_x %i win_y %i\n", win_x, win_y);
+    printf("event->mouse_dx %f event->mouse_dy %f\n", event->mouse_dx, event->mouse_dy);
 
     switch (event->type)
     {
@@ -28,6 +39,7 @@ void camera_input(parcc_context *camera, const sapp_event *event)
             mouse_down_pos[0] = win_x;
             mouse_down_pos[1] = win_y;
             parcc_grab_begin(camera, win_x, win_y, event->mouse_button);
+            sapp_lock_mouse(true);
             break;
         }
         case SAPP_EVENTTYPE_MOUSE_UP:
@@ -37,11 +49,12 @@ void camera_input(parcc_context *camera, const sapp_event *event)
             {
                 printf("Clicked [%d, %d]\n", win_x, win_y);
             }
+            sapp_lock_mouse(false);
             break;
         }
         case SAPP_EVENTTYPE_MOUSE_MOVE:
         {
-            parcc_grab_update(camera, win_x, win_y);
+            parcc_grab_update(camera, event->mouse_dx * 0.25f, event->mouse_dy * 0.25f);
             break;
         }
         case SAPP_EVENTTYPE_MOUSE_SCROLL:
@@ -76,6 +89,8 @@ void camera_debug_gui(parcc_context *camera)
     igSliderFloat2("orbit_strafe_speed", camera_props.orbit_strafe_speed, 0.0f, 0.025f, "%.3f", ImGuiSliderFlags_None);
 
     camera_props.fov_degrees = fov_radians * (180.0f / HMM_PI32);
+    camera_props.viewport_width = sapp_width();
+    camera_props.viewport_height = sapp_height();    
     parcc_set_properties(camera, &camera_props);
 
     igText("Camera Frame Properties");

@@ -14,7 +14,7 @@ void init()
 
 void frame() 
 {
-    app_draw(&app);
+    app_update(&app);
 }
 
 void cleanup() 

@@ -3,11 +3,12 @@
 
 #include "sokol_app.h"
 
-#include "camera.h"
+#include "camera_util.h"
 
-void input_handle(parcc_context *camera, const sapp_event *event)
+void input_handle(camera_t *camera, const sapp_event *event)
 {
-    camera_input(camera, event);
+    // camera_input(camera, event);
+    cam_handle_event(camera, event);
 
     // [0] = forward/backward [1] = left/right
     float move_direction[2] = { 0 };

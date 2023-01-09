@@ -5,6 +5,7 @@
 #include "sokol_fetch.h"
 #include "sokol_gfx.h"
 #include "sokol_glue.h"
+#include "sokol_shape.h"
 #include "sokol_time.h"
 
 // #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
